@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新規登録 - django-sample</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(74,108,247,.12);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 460px;
+    }
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #222;
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    /* ステップインジケーター */
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .steps::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 1.5rem;
+      right: 1.5rem;
+      height: 2px;
+      background: #e2e8f0;
+      z-index: 0;
+    }
+    .step {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+      z-index: 1;
+      transition: all .25s;
+    }
+    .step.active  { background: #4a6cf7; color: #fff; }
+    .step.done    { background: #10b981; color: #fff; }
+    /* フォームパネル */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: .3rem;
+      margin-top: .9rem;
+    }
+    input[type=text], input[type=password], input[type=number], select {
+      width: 100%;
+      padding: .6rem .8rem;
+      border: 1.5px solid #dde3f0;
+      border-radius: 7px;
+      font-size: .95rem;
+      transition: border-color .2s;
+      background: #fafbff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #4a6cf7;
+      background: #fff;
+    }
+    .hint-text {
+      font-size: .78rem;
+      color: #888;
+      margin-top: .3rem;
+      line-height: 1.5;
+    }
+    .btn {
+      width: 100%;
+      padding: .78rem;
+      background: #4a6cf7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1.4rem;
+      transition: background .2s, opacity .2s;
+    }
+    .btn:hover { background: #3a5ce7; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .error-msg {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+      border-radius: 6px;
+      padding: .65rem .85rem;
+      font-size: .85rem;
+      margin-top: 1rem;
+      display: none;
+    }
+    .success-box {
+      text-align: center;
+      padding: 1.5rem 0 .5rem;
+    }
+    .user-id-badge {
+      display: inline-block;
+      background: #4a6cf7;
+      color: #fff;
+      font-size: 1.6rem;
+      font-family: monospace;
+      font-weight: 700;
+      padding: .4rem 1.2rem;
+      border-radius: 8px;
+      letter-spacing: .1em;
+      margin: 1rem 0;
+    }
+    .success-box p { color: #555; font-size: .9rem; line-height: 1.7; }
+    .tg-info {
+      background: #f0f7ff;
+      border: 1px solid #bbd6f7;
+      border-radius: 8px;
+      padding: .85rem 1rem;
+      margin-top: .8rem;
+      font-size: .82rem;
+      color: #2c5f9e;
+      line-height: 1.6;
+    }
+    .tg-info strong { display: block; margin-bottom: .25rem; font-size: .88rem; }
+    a.link { color: #4a6cf7; text-decoration: none; }
+    a.link:hover { text-decoration: underline; }
+    .divider { border: none; border-top: 1px solid #eef0f7; margin: 1.2rem 0; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>新規会員登録</h1>
+
+  <!-- ステップインジケーター -->
+  <div class="steps">
+    <div class="step active" id="si1">1</div>
+    <div class="step"        id="si2">2</div>
+    <div class="step"        id="si3">3</div>
+  </div>
+
+  <!-- Step 1: Telegram チャット ID 入力 -->
+  <div class="panel active" id="step1">
+    <p style="font-size:.85rem; color:#555; line-height:1.7; margin-bottom:.5rem;">
+      Telegram Bot からワンタイムパスワードを受け取ります。<br>
+      先にボットへ <strong>/start</strong> を送り、表示されたチャット ID を入力してください。
+    </p>
+
+    <div class="tg-info">
+      <strong>チャット ID の確認方法</strong>
+      1. Telegram で <code>@ShiningWish_bot</code>（または設定済みボット）を検索<br>
+      2. <strong>/start</strong> と送信<br>
+      3. ボットが返信した数字がチャット ID です
+    </div>
+
+    <label for="chat_id">Telegram チャット ID（数字）</label>
+    <input type="number" id="chat_id" placeholder="例: 1234567890" autocomplete="off">
+
+    <label for="sns_type" style="margin-top:.9rem;">送信チャンネル</label>
+    <select id="sns_type">
+      <option value="1">Telegram</option>
+    </select>
+
+    <div class="error-msg" id="err1"></div>
+    <button class="btn" id="btn1" onclick="doStep1()">OTP を送信</button>
+  </div>
+
+  <!-- Step 2: OTP 入力 -->
+  <div class="panel" id="step2">
+    <p style="font-size:.85rem; color:#555; line-height:1.7; margin-bottom:1rem;">
+      Telegram に届いた <strong>6桁のコード</strong> を入力してください。<br>
+      <span id="otp_ttl_note" style="color:#888;"></span>
+    </p>
+
+    <label for="otp_code">認証コード（6桁）</label>
+    <input type="text" id="otp_code" maxlength="6" placeholder="000000"
+           autocomplete="one-time-code" inputmode="numeric"
+           oninput="this.value=this.value.replace(/\D/g,'')">
+
+    <div class="error-msg" id="err2"></div>
+    <button class="btn" id="btn2" onclick="doStep2()">コードを確認</button>
+    <p style="text-align:center; margin-top:.75rem;">
+      <a href="#" class="link" style="font-size:.82rem;" onclick="goBack(event)">← チャット ID を入力し直す</a>
+    </p>
+  </div>
+
+  <!-- Step 3: 個人情報 + パスワード -->
+  <div class="panel" id="step3">
+    <p style="font-size:.82rem; color:#888; margin-bottom:.3rem;">本人確認のため以下をご入力ください。</p>
+
+    <label for="personal_name">氏名</label>
+    <input type="text" id="personal_name" placeholder="山田 太郎">
+
+    <label for="personal_name_kana">氏名（フリガナ）</label>
+    <input type="text" id="personal_name_kana" placeholder="ヤマダ タロウ">
+
+    <label for="personal_zip">郵便番号</label>
+    <input type="text" id="personal_zip" placeholder="100-0001" maxlength="8">
+
+    <label for="personal_address">住所</label>
+    <input type="text" id="personal_address" placeholder="東京都千代田区千代田1-1">
+
+    <label for="personal_phone_number">電話番号</label>
+    <input type="text" id="personal_phone_number" placeholder="090-1234-5678">
+
+    <hr class="divider">
+
+    <label for="password">パスワード（8文字以上）</label>
+    <input type="password" id="password" placeholder="半角英数8文字以上" autocomplete="new-password">
+
+    <label for="password2">パスワード（確認）</label>
+    <input type="password" id="password2" placeholder="もう一度入力" autocomplete="new-password">
+
+    <div class="error-msg" id="err3"></div>
+    <button class="btn" id="btn3" onclick="doStep3()">登録を完了する</button>
+  </div>
+
+  <!-- 完了画面 -->
+  <div class="panel" id="step_done">
+    <div class="success-box">
+      <div style="font-size:2.5rem;">✅</div>
+      <p style="margin-top:.5rem; font-weight:700; font-size:1.05rem;">登録が完了しました！</p>
+      <div class="user-id-badge" id="done_user_id">U00000000</div>
+      <p>上記の USER ID と設定したパスワードでログインできます。</p>
+      <p style="margin-top:.75rem; font-size:.82rem; color:#888;">
+        Telegram ボットにも完了通知が届きます。
+      </p>
+    </div>
+    <a href="/portal/login/" class="btn" style="display:block; text-align:center; text-decoration:none; margin-top:1.2rem;">
+      ログインページへ →
+    </a>
+  </div>
+</div>
+
+<script>
+  // ------------------------------------------------------------------
+  // 状態
+  // ------------------------------------------------------------------
+  let _otpSessionId = null;
+  let _verifiedToken = null;
+
+  // ------------------------------------------------------------------
+  // Step 1: OTP 送信
+  // ------------------------------------------------------------------
+  async function doStep1() {
+    const chatId   = document.getElementById("chat_id").value.trim();
+    const snsType  = parseInt(document.getElementById("sns_type").value);
+    const btn      = document.getElementById("btn1");
+    const errEl    = document.getElementById("err1");
+
+    clearError(errEl);
+
+    if (!chatId || !/^\d+$/.test(chatId)) {
+      showError(errEl, "チャット ID は数字で入力してください。");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "送信中...";
+
+    try {
+      const res = await postJSON("/signup/sns/start", {
+        sns_type: snsType,
+        login_id: chatId,
+      });
+
+      if (!res.ok) {
+        if (res.error === "cooldown") {
+          showError(errEl, `送信が連続しています。${res.retry_after_sec}秒後に再試行してください。`);
+        } else {
+          showError(errEl, res.error || "エラーが発生しました。");
+        }
+        return;
+      }
+
+      _otpSessionId = res.otp_session_id;
+      document.getElementById("otp_ttl_note").textContent =
+        `有効期間: ${res.ttl_seconds}秒 / 最大試行: ${res.max_attempts}回`;
+
+      goStep(2);
+
+    } catch (e) {
+      showError(errEl, "通信エラーが発生しました: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "OTP を送信";
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Step 2: OTP 検証
+  // ------------------------------------------------------------------
+  async function doStep2() {
+    const otp   = document.getElementById("otp_code").value.trim();
+    const btn   = document.getElementById("btn2");
+    const errEl = document.getElementById("err2");
+
+    clearError(errEl);
+
+    if (!/^\d{6}$/.test(otp)) {
+      showError(errEl, "6桁の数字を入力してください。");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "確認中...";
+
+    try {
+      const res = await postJSON("/signup/sns/verify", {
+        otp_session_id: _otpSessionId,
+        otp: otp,
+      });
+
+      if (!res.ok) {
+        const rem = res.remaining_attempts;
+        const note = rem !== undefined ? `（残り${rem}回）` : "";
+        showError(errEl, (res.error || "コードが正しくありません") + note);
+        return;
+      }
+
+      _verifiedToken = res.verified_token;
+      goStep(3);
+
+    } catch (e) {
+      showError(errEl, "通信エラーが発生しました: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "コードを確認";
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Step 3: 会員登録完了
+  // ------------------------------------------------------------------
+  async function doStep3() {
+    const btn   = document.getElementById("btn3");
+    const errEl = document.getElementById("err3");
+
+    clearError(errEl);
+
+    const pw  = document.getElementById("password").value;
+    const pw2 = document.getElementById("password2").value;
+
+    if (pw.length < 8) {
+      showError(errEl, "パスワードは8文字以上で入力してください。");
+      return;
+    }
+    if (pw !== pw2) {
+      showError(errEl, "パスワードが一致しません。");
+      return;
+    }
+
+    const fields = {
+      personal_name:         document.getElementById("personal_name").value.trim(),
+      personal_name_kana:    document.getElementById("personal_name_kana").value.trim(),
+      personal_zip:          document.getElementById("personal_zip").value.trim(),
+      personal_address:      document.getElementById("personal_address").value.trim(),
+      personal_phone_number: document.getElementById("personal_phone_number").value.trim(),
+    };
+
+    for (const [key, val] of Object.entries(fields)) {
+      if (!val) {
+        showError(errEl, `${labelOf(key)}を入力してください。`);
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    btn.textContent = "登録中...";
+
+    try {
+      const res = await postJSON("/signup/complete", {
+        verified_token: _verifiedToken,
+        password: pw,
+        ...fields,
+      });
+
+      if (!res.ok) {
+        showError(errEl, res.error || "登録に失敗しました。");
+        return;
+      }
+
+      document.getElementById("done_user_id").textContent = res.user_id;
+      goStep("done");
+
+    } catch (e) {
+      showError(errEl, "通信エラーが発生しました: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "登録を完了する";
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // ユーティリティ
+  // ------------------------------------------------------------------
+  function goStep(n) {
+    document.querySelectorAll(".panel").forEach(el => el.classList.remove("active"));
+    document.getElementById(n === "done" ? "step_done" : `step${n}`).classList.add("active");
+
+    // ステップインジケーター更新
+    [1, 2, 3].forEach(i => {
+      const el = document.getElementById(`si${i}`);
+      el.classList.remove("active", "done");
+      if (n === "done" || i < n) el.classList.add("done");
+      else if (i === n) el.classList.add("active");
+    });
+
+    if (n === 2) document.getElementById("otp_code").focus();
+    if (n === 3) document.getElementById("personal_name").focus();
+  }
+
+  function goBack(e) {
+    e.preventDefault();
+    _otpSessionId = null;
+    document.getElementById("otp_code").value = "";
+    goStep(1);
+  }
+
+  async function postJSON(url, data) {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return resp.json();
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function clearError(el) {
+    el.textContent = "";
+    el.style.display = "none";
+  }
+
+  function labelOf(key) {
+    const m = {
+      personal_name: "氏名", personal_name_kana: "フリガナ",
+      personal_zip: "郵便番号", personal_address: "住所",
+      personal_phone_number: "電話番号",
+    };
+    return m[key] || key;
+  }
+</script>
+</body>
+</html>

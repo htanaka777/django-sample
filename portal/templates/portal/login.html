@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン - django-sample</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.1);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #222; text-align: center; }
+    label { display: block; font-size: .85rem; color: #555; margin-bottom: .25rem; }
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: .6rem .8rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: border-color .2s;
+    }
+    input:focus { outline: none; border-color: #4a6cf7; }
+    .btn {
+      width: 100%;
+      padding: .75rem;
+      background: #4a6cf7;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn:hover { background: #3a5ce7; }
+    .errors { color: #e53e3e; font-size: .85rem; margin-bottom: 1rem; }
+    .hint {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #fffbeb;
+      border: 1px solid #f6d860;
+      border-radius: 6px;
+      font-size: .82rem;
+      color: #7a5c00;
+      line-height: 1.6;
+    }
+    .hint code {
+      background: #fef3c7;
+      padding: .1em .35em;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ログイン</h1>
+
+    <form method="post">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="errors">
+          {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <label for="id_username">ユーザー名 または USER_ID</label>
+      <input type="text" id="id_username" name="username" autofocus
+             value="{{ form.username.value|default:'' }}"
+             placeholder="例: U00000001">
+
+      <label for="id_password">パスワード</label>
+      <input type="password" id="id_password" name="password" placeholder="8文字以上">
+
+      <button type="submit" class="btn">ログイン</button>
+    </form>
+
+    {% if debug %}
+    <div class="hint">
+      <strong>デモ環境</strong><br>
+      アカウントがない場合は、まず API で会員登録するか、<br>
+      管理者ユーザーを作成してください:<br><br>
+      <code>python manage.py createsuperuser</code><br><br>
+      または <a href="/admin/">Django Admin</a> から AccountUser を作成できます。<br><br>
+      USER_ID 形式（例: <code>U00000001</code>）でもログインできます。
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

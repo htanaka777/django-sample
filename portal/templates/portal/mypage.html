@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マイページ - django-sample</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: .75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-weight: 700; font-size: 1.1rem; color: #4a6cf7; }
+    .user-id-box {
+      display: inline-block;
+      background: #4a6cf7;
+      color: #fff;
+      font-size: .8rem;
+      font-family: monospace;
+      padding: .2em .6em;
+      border-radius: 4px;
+      letter-spacing: .05em;
+    }
+    .logout-link { font-size: .85rem; color: #888; text-decoration: none; }
+    .logout-link:hover { color: #e53e3e; }
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    section { background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.07); padding: 1.5rem; margin-bottom: 1.5rem; }
+    h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: #444; border-bottom: 2px solid #f0f4ff; padding-bottom: .5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #f0f0f0; }
+    th { color: #888; font-weight: 600; width: 35%; }
+    .badge {
+      display: inline-block;
+      padding: .2em .65em;
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .badge-gray   { background: #f0f0f0; color: #666; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-red    { background: #fee2e2; color: #991b1b; }
+    .kyc-upload { margin-top: 1rem; }
+    .kyc-upload input[type=file], .kyc-upload select { margin-right: .5rem; }
+    .btn-sm {
+      padding: .4rem .9rem;
+      background: #4a6cf7;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+    .btn-sm:hover { background: #3a5ce7; }
+    .doc-list { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .75rem; }
+    .doc-thumb {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      width: 120px;
+      text-align: center;
+      font-size: .75rem;
+      color: #888;
+    }
+    .doc-thumb img { width: 100%; height: 90px; object-fit: cover; display: block; }
+    .audit-table td { font-size: .8rem; }
+    .result-ok   { color: #065f46; font-weight: 600; }
+    .result-fail { color: #991b1b; font-weight: 600; }
+    #upload-result { margin-top: .75rem; font-size: .85rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">django-sample</span>
+  <span>
+    {% if au %}
+      <span class="user-id-box">{{ au.user_id }}</span>
+    {% else %}
+      <span class="user-id-box">管理者</span>
+    {% endif %}
+    &nbsp;
+    <a href="/portal/logout/" class="logout-link">ログアウト</a>
+  </span>
+</header>
+
+<main>
+
+  <!-- アカウント情報 -->
+  <section>
+    <h2>アカウント情報</h2>
+    {% if au %}
+    <table>
+      <tr><th>USER ID</th><td><span class="user-id-box">{{ au.user_id }}</span></td></tr>
+      <tr><th>ログイン ID</th><td>{{ au.login_id }}</td></tr>
+      <tr><th>氏名</th><td>{{ au.personal_name }}</td></tr>
+      <tr><th>氏名（カナ）</th><td>{{ au.personal_name_kana }}</td></tr>
+      <tr><th>郵便番号</th><td>〒{{ au.personal_zip }}</td></tr>
+      <tr><th>住所</th><td>{{ au.personal_address }}</td></tr>
+      <tr><th>電話番号</th><td>{{ au.personal_phone_number }}</td></tr>
+      <tr><th>登録日時</th><td>{{ au.created_at|date:"Y-m-d H:i" }}</td></tr>
+    </table>
+    {% else %}
+    <p style="color:#888; font-size:.9rem;">アカウントプロファイルが見つかりません（管理者ユーザー等）</p>
+    {% endif %}
+  </section>
+
+  <!-- KYC ステータス -->
+  <section>
+    <h2>KYC（本人確認）</h2>
+    {% if au %}
+      <p>
+        ステータス:
+        {% if au.kyc_status == 0 %}
+          <span class="badge badge-gray">未提出</span>
+        {% elif au.kyc_status == 1 %}
+          <span class="badge badge-yellow">審査中</span>
+        {% elif au.kyc_status == 2 %}
+          <span class="badge badge-green">承認済</span>
+        {% else %}
+          <span class="badge badge-red">否認</span>
+        {% endif %}
+        {% if au.kyc_last_update %}
+          <small style="color:#999; margin-left:.75rem;">最終更新: {{ au.kyc_last_update|date:"Y-m-d H:i" }}</small>
+        {% endif %}
+      </p>
+
+      <!-- アップロード済みドキュメント -->
+      {% if docs %}
+      <div class="doc-list">
+        {% for doc in docs %}
+        <div class="doc-thumb">
+          <img src="#" alt="doc {{ doc.image_id }}" id="doc-img-{{ doc.image_id }}">
+          <div style="padding:.3rem;">
+            #{{ doc.image_id }}&nbsp;
+            {% if doc.doc_type == 1 %}免許証
+            {% elif doc.doc_type == 2 %}パスポート
+            {% elif doc.doc_type == 3 %}マイナンバー
+            {% else %}その他{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- アップロードフォーム -->
+      <div class="kyc-upload">
+        <form id="kyc-form" enctype="multipart/form-data">
+          {% csrf_token %}
+          <select name="doc_type" id="doc_type">
+            <option value="1">運転免許証</option>
+            <option value="2">パスポート</option>
+            <option value="3">マイナンバーカード</option>
+            <option value="4">その他</option>
+          </select>
+          <input type="file" name="file" id="kyc-file" accept="image/jpeg,image/png">
+          <button type="submit" class="btn-sm">アップロード</button>
+        </form>
+        <div id="upload-result"></div>
+      </div>
+
+      <script>
+      document.getElementById("kyc-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const result = document.getElementById("upload-result");
+        result.textContent = "アップロード中...";
+        const fd = new FormData(this);
+        try {
+          const resp = await fetch("/signup/kyc/upload", { method: "POST", body: fd });
+          const json = await resp.json();
+          if (json.ok) {
+            result.innerHTML = `<span style="color:green">アップロード完了 (image_id=${json.image_id})</span>
+              &nbsp; <a href="${json.preview_url}" target="_blank">プレビュー（${json.expires_in_sec}秒有効）</a>`;
+          } else {
+            result.innerHTML = `<span style="color:red">エラー: ${json.error}</span>`;
+          }
+        } catch(err) {
+          result.innerHTML = `<span style="color:red">通信エラー</span>`;
+        }
+      });
+      </script>
+    {% else %}
+      <p style="color:#888; font-size:.9rem;">KYC 機能はアカウントユーザー専用です。</p>
+    {% endif %}
+  </section>
+
+  <!-- 監査ログ -->
+  <section>
+    <h2>最近の認証イベント（直近 10 件）</h2>
+    {% if recent_audit %}
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>日時</th>
+          <th>イベント</th>
+          <th>結果</th>
+          <th>IP アドレス</th>
+          <th>備考</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_audit %}
+        <tr>
+          <td>{{ log.event_at|date:"m-d H:i:s" }}</td>
+          <td>
+            {% if log.event_type == 101 %}OTP 送信
+            {% elif log.event_type == 102 %}OTP 検証成功
+            {% elif log.event_type == 103 %}OTP 検証失敗
+            {% elif log.event_type == 111 %}会員登録完了
+            {% elif log.event_type == 201 %}KYC アップロード
+            {% elif log.event_type == 301 %}ログイン成功
+            {% elif log.event_type == 302 %}ログイン失敗
+            {% else %}{{ log.event_type }}{% endif %}
+          </td>
+          <td>
+            {% if log.result == 1 %}
+              <span class="result-ok">OK</span>
+            {% else %}
+              <span class="result-fail">FAIL</span>
+            {% endif %}
+          </td>
+          <td>{{ log.ip_address|default:"-" }}</td>
+          <td style="color:#999;">{{ log.reason|default:"" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888; font-size:.9rem;">認証イベントの記録がありません。</p>
+    {% endif %}
+  </section>
+
+</main>
+</body>
+</html>
